@@ -1,6 +1,8 @@
 # Changes to Kadira APM
 
-These changes are being captured by GitHub repository
+This is a fork of ![kadira-open/kadira-server](https://github.com/kadira-open/kadira-server) which is not versioned.
+
+Fork development changes are being captured by GitHub repository
 ![shathaway/kadira-server](https://github.com/shathaway/kadira-server).
 
 This GitHub repository is for public consumption. The actual development
@@ -9,7 +11,7 @@ removed before being posted. Our internal documents may be rewritten
 for public consumption and posted to the repository branches at some
 future date.
 
-The main branch of this repository shall contain a usable deployment
+The master branch of this repository shall contain a usable deployment
 capability. Branches labeled **v1.0.0**, and **v2.0.0** are for posting
 release specific patches.
 
