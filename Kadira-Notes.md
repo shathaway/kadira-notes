@@ -197,7 +197,11 @@ The **meteor** command is used for meteor project development and testing.
 - **meteor-ui** is a meteor project
 
 ### Installing NodeJs
-The node.js runtime environment is required. I like to use the (nvm) Node Version Manager so that it is easy to switch between node.js and (npm) Node Package Manager releases. This is useful for developer code maintence, but may cause issues when deploying to a **kadira** account for running as a system sesrvice.
+The node.js runtime environment is required.
+I like to use the (nvm) Node Version Manager so that it is easy to
+switch between node.js and (npm) Node Package Manager releases.
+This is useful for developer code maintence, but may cause issues
+when deploying to a **kadira** account for running as a system sesrvice.
 
 - kadira-engine is a node.js application
 - kadira-rma is a node.js application
@@ -222,19 +226,54 @@ Installing this bundle puts the meteor-tool in your **~/.meteor/packages** direc
 Each meteor project has a hidden **.meteor** directory containing the meteor version to use with the project.  Invoking the **meteor** command from within a project chooses the proper meteor-tool that provides a compatible runtime. Meteor packages are cached in your login **~/.meteor/packages**
 directory with references from your meteor project build directory.
 
-You can run your meteor application with the meteor command, or you can create an exportable bundle that can be run using a compatibe version of node.js.
+You can run your meteor application with the meteor command,
+or you can create an exportable bundle that can be run using a compatibe version of node.js.
 
 Installing OSP Kadira APM Applications
-Here we assume you have a Linux user account. It should not have the **kadira** name which will be described later.
+Here we assume you have a Linux user account.
+It should not have the **kadira** name which will be described later.
 
-You should copy the contents of the [shathaway/kadira-server](https://github.com/shathaway/kadira-server) into a working directory of your choosing. It is best to have a directory separate from that containing the (*.git*) hidden directory that is associated with a forked or cloned git repository.
+You should copy the contents of the [shathaway/kadira-server](https://github.com/shathaway/kadira-server)
+into a working directory of your choosing.
+It is best to have a directory separate from that containing
+the (*.git*) hidden directory that is associated with a forked or cloned git repository.
 
-The directory containing a copy of **kadira-server** content has a **init-shell.sh** file that is used to set some common environment variables used by the application products in the **kadira-engine**,
-**kadira-rma**, and **kadira-ui** directories.
+The directory containing a copy of **kadira-server** content has a **init-shell.sh** file
+that is used to set some common environment variables used by the application products
+in the **kadira-engine**, **kadira-rma**, and **kadira-ui** directories.
 
-Create the Kadira Databases in MongoDb
-This can be done using the MongoDb **mongo** shell. There are two databases that need to be created. These will be the names you use in the MongoDb connection strings used by the applications.
-The database names have significance only in the connection URLs referenced by environment variables. One database is the APP database containing the application and user registry. The other database is the DATA database containing the application artifacts being measured.  
+### Create the Kadira Databases in MongoDb
+This can be done using the MongoDb **mongo** shell.
+There are two databases that need to be created.
+These will be the names you use in the MongoDb connection strings used by the applications.
+The database names have significance only in the connection URLs referenced by environment variables.
+One database is the APP database containing the application and user registry.
+The other database is the DATA database containing the application artifacts being measured.
+
+#### Create the Databases and Connection Security
+This example shows how to create the two databases and give them connection security
+by using the MongoDb **mongo** shell.
+Here the default localhost mongod server is specified,
+but it can be any mongod server on which you have admistrative authority.
+
+```
+mongo localhost:27017
+> use tkadira-data
+> db.createUser({user: 'app', pwd: 'app-password', roles: [ 'readWrite', 'dbAdmin' ]})
+> use tkadira-app
+> db.createUser({user: 'app', pwd: 'app-password', roles: [ 'readWrite', 'dbAdmin' ]})
+> show users
+> exit
+```
+
+If your initial connection using mongo does not allow you to create databases, you will
+need to supply administrative authentication credentials before creating users.
+```
+mongo mongo-host:port
+> db.auth({user: 'system-user', pwd: 'system-password'})
+```
+If successful, you can then try to create the needed **APP** and **DATA** databases with
+the connection authentication credentials.
 
 The MongoDb database security used by the connection strings is unrelated to the Meteor user authentication mechanisms. The MongoDb security credentials are found in the "admin" database.
 Here are examples we use in the **init-shell.sh** startup script.
@@ -265,7 +304,7 @@ export APP_MONGO_OPLOG_URL="mongodb://app:app-password@localhost:27017,localhost
 icaSet=set-SORM-RH7-PC-01&authSource=tkadira-app"
 ```
 
-Initialize the DATA Database
+### Initialize the DATA Database
 Insert records into the mapReduceProfileConfig collection to support the metrics aggregation profiles.
 
 This should only be done once for each shard. The default shard "one" is used for MongoDb installations 
@@ -289,9 +328,9 @@ db.mapReduceProfileConfig.insertMany([
 ```
 
 When doing sharding: "one" is the first shard, "two" is the second shard, and "three" is the third shard.
-Our developers are not doing sharding and therefore multiple shard servers is not tested.
+Our developers are not doing sharding and therefore multiple shard servers are not tested.
 
-##Installing Kadira APM Services
+## Installing Kadira APM Services
 
 
 
