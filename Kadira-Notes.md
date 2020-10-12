@@ -9,7 +9,7 @@ that is created or installed for in-house use.
 The hosting of this service is on a self-maintained server or network of servers.
 The servers are either acquired as physical servers or PAAS leased platforms as a service.
 Development of this implementation uses VMware virtual machines of Linux systems.
-Development is compatible with a replicated mondod set of nodes on a single machine.
+Development is compatible with a replicated set of mongod nodes on a single machine.
 
 Our upgrade activites are based on **kadira-open/kadira-server** applications found in directories:
 - kadira-engine
@@ -26,7 +26,7 @@ We are not doing deployments to cloud hosting services. All hosting is done in-h
 | NGINX | A web application proxy server supporting kadira-engine and kadira-ui. |
 | systemd | A Linux system control manager. |
 
-Strategic tacks for installing a new system:
+Strategic tasks for installing a new system:
 - Install a MongoDb as a replica set.
 - Install Kadira services as applications.
 - Install a NGINX web service proxy for applications and services.
@@ -138,49 +138,49 @@ Let **RS-Replica-01** be the name for your replicaSet.
 
 ```js
 {
-	"_id" : "RS-Replica-01",
-	"version" : 2,
-	"protocolVersion" : NumberLong(1),
-	"members" : [
-		{
-			"_id" : 0,
-			"host" : "localhost:27017",
-			"arbiterOnly" : false,
-			"buildIndexes" : true,
-			"hidden" : false,
-			"priority" : 2,
-			"tags" : {
-			},
-			"slaveDelay" : NumberLong(0),
-			"votes" : 1
-		},
-		{
-			"_id" : 1,
-			"host" : "localhost:27020",
-			"arbiterOnly" : false,
-			"buildIndexes" : true,
-			"hidden" : false,
-			"priority" : 1,
-			"tags" : {
-			},
-			"slaveDelay" : NumberLong(0),
-			"votes" : 1
-		}
-	],
-	"settings" : {
-		"chainingAllowed" : true,
-		"heartbeatIntervalMillis" : 2000,
-		"heartbeatTimeoutSecs" : 10,
-		"electionTimeoutMillis" : 10000,
-		"catchUpTimeoutMillis" : -1,
-		"catchUpTakeoverDelayMillis" : 30000,
-		"getLastErrorModes" : {
-		},
-		"getLastErrorDefaults" : {
-			"w" : 1,
-			"wtimeout" : 0
-		}
-	}
+  "_id" : "RS-Replica-01",
+  "version" : 2,
+  "protocolVersion" : NumberLong(1),
+  "members" : [
+    {
+      "_id" : 0,
+      "host" : "localhost:27017",
+      "arbiterOnly" : false,
+      "buildIndexes" : true,
+      "hidden" : false,
+      "priority" : 2,
+      "tags" : {
+      },
+      "slaveDelay" : NumberLong(0),
+      "votes" : 1
+    },
+    {
+      "_id" : 1,
+      "host" : "localhost:27020",
+      "arbiterOnly" : false,
+      "buildIndexes" : true,
+      "hidden" : false,
+      "priority" : 1,
+      "tags" : {
+      },
+      "slaveDelay" : NumberLong(0),
+      "votes" : 1
+    }
+  ],
+  "settings" : {
+    "chainingAllowed" : true,
+    "heartbeatIntervalMillis" : 2000,
+    "heartbeatTimeoutSecs" : 10,
+    "electionTimeoutMillis" : 10000,
+    "catchUpTimeoutMillis" : -1,
+    "catchUpTakeoverDelayMillis" : 30000,
+    "getLastErrorModes" : {
+    },
+    "getLastErrorDefaults" : {
+      "w" : 1,
+      "wtimeout" : 0
+    }
+  }
 }
 ```
 
