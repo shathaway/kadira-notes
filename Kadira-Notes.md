@@ -21,7 +21,7 @@ We are not doing deployments to cloud hosting services. All hosting is done in-h
 ## Related services to support OSP Kadira APM include:
 
 | MongoDb | A Mongo database implementing a replica set. |
-| --------------- | ----------------------------------------------------- |
+| :-------------- | ----------------------------------------------------- |
 | Kadira Services | These services can monitor Meteor instrumented applications. |
 | NGINX | A web application proxy server supporting kadira-engine and kadira-ui. |
 | systemd | A Linux system control manager. |
@@ -49,7 +49,7 @@ Your installation may be different, but we use CentOS or RedHat hosting configur
 
 **mongod** - the primary database node implementation (default) : 27017
 | /etc/mongod.conf | System startup options for primary node. |
-| ---------------------------------- | ---------------------------- |
+| :--------------------------------- | ---------------------------- |
 | /var/lib/mongod/* | Database for primary node. |
 | /var/log/mongodb/mongod.log | Log file for primary node. |
 | /lib/systemd/system/mongod.service | systemd unit description |
@@ -57,7 +57,7 @@ Your installation may be different, but we use CentOS or RedHat hosting configur
 
 **mondod2** - the secondary database node implementation (replica)  : 27020
 | /etc/mongod2.conf | System startup options for secondary node.|
-| ---------------------------------- | ---------------------------- |
+| :--------------------------------- | ---------------------------- |
 | /var/lib/mongod2/* | Database for secondary node. |
 | /var/log/mongodb/mongod2.log | Log file for secondary node. |
 | /lib/systemd/system/mongod2.service | systemd unit description |
@@ -65,7 +65,7 @@ Your installation may be different, but we use CentOS or RedHat hosting configur
 
 **system files** - system management files and directories
 | /etc/mongodb.d/* | Files for log file rotation |
-| ---------------------------------- | ---------------------------- |
+| :--------------------------------- | ---------------------------- |
 | /etc/mongodb.d/rotate.sh | Script to rotate log files |
 | /etc/cron.d/mongodb.cron | Cron job policy for log rotation |
 | /var/run/mongodb/* | pid files for mongod nodes |
