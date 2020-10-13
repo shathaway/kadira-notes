@@ -310,7 +310,7 @@ If your MongoDb system is secured, the user:password must have access to the loc
 but may be authenticated to a user on another database on the same server.
 ```
 export APP\_MONGO\_OPLOG_URL="mongodb://app:app-password@localhost:27017,localhost:27020/local?repl
-icaSet=set-SORM-RH7-PC-01&authSource=tkadira-app"
+icaSet=RS-Replica-01&authSource=tkadira-app"
 ```
 
 ### Initialize the DATA Database
