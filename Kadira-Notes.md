@@ -435,6 +435,12 @@ We are not using the LIBRATO statics collection and reporting service.
 The email interface and configured accounts are disabled or
 removed from our code implementation.
 
+We are not using the Amazon Web Services (AWS) or other cloud hosting services.
+
+The (kadira-ui) application **settings.json** file is currently unchanged
+from the initial **kadira-open** code base.
+
+
 ### Starting the Applications
 The startup is consistent across all three applications (kadira-engine), (kadira-apm)
 and (kadira-ui).
@@ -464,10 +470,57 @@ as services.
 
 ## Installing OSP Kadira APM Services (systemd/systemctl)
 
+Services we implement for our OSP Kadira APM include:
+- mongod
+- mongod2
+- kadira-en
+- kadira-rma
+- kadira-ui
+- nginx
 
+The **mongod** service is the default implemented by MongoDb installation.
 
+The **mongod2** service is a clone of the configuration files with minor
+edits to accommodate a second **mongod** service on the local machine.
 
+The **kadira-en** service makes (systemd/systemctl) control an application
+as a service. This service listens for activity on *"http://localhost:11011"*
+with no external access except through an NGINX reverse proxy web server.
 
+The **kadira-rma** service makes (systemd/systemctl) control an application
+as a service.
 
+The **kadira-ui** service makes (systemd/systemctl) control an application
+as a service. This service listens for activity on *"http://localhost:4000"*
+with no external access except through an NGINX reverse proxy web server.
+
+The **nginx** service is the NGINX reverse proxy web server.
+
+We have also implemented some NodeJs applications for testing. These normally
+listen by default on *"http://localhost:3000"* which is default for NodeJs
+applications.
+
+We configure NGINX to publish external DNS names for our embargoed 
+OSP Kadira APM applications.
+
+- http://engine.example.com --> http://localhost:11011
+- https://ui.example.com --> http://localhost:4000
+- https://node.example.com --> http://localhost:3000
+
+These applications provide extenal access through NGINX
+to service locations differentiated by DNS name, and having a
+common IP connection address.
+
+There is a reason why "http:" is assiciated with *engine.example.com*.
+
+The *mdg:meteor-apm-agent* and *meteorhacks:kadira* instrumentation for
+Meteor applications has problems sending metrics to a secure "https:"
+endpoint. An issue has been submitted to the Meteor Development Group
+about this. Even though a secure "https:" connection can be
+established from a Meteor client, the expected encrypted payload cannot
+be recognized or even delivered to our NGINX reverse proxy web server.
+
+The "kadira-rma" service runs locally with no external communications
+except to a backend MongoDb database.
 
 
