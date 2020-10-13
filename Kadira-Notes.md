@@ -339,6 +339,43 @@ db.mapReduceProfileConfig.insertMany([
 When doing sharding: "one" is the first shard, "two" is the second shard, and "three" is the third shard.
 Our developers are not doing sharding and therefore multiple shard servers are not tested.
 
+### Initialize APM Database With User
+Our APM user authentication uses the Meteor **accounts-password** module.
+You can use the Meteor shell to install an initial account.
+The kadira-ui application must be running in order to launch the Meteor shell.
+
+- Connect to the application project directory: kadira-ui
+- Start the application: **cat ../init-shell.sh run.sh | sh &**
+
+The application start above puts the job in the background. To cancel the application,
+you bring it to the forground using the **fg 1** command and issue **<CTRL-C>**.
+You can look for the background jobs by issuing the **jobs** command.
+
+The Meteor shell is invoked by a user when connected to the application project directory
+while the application is running. The database being used (*tkadira-app*) is the
+application database.
+
+```js
+meteor shell
+> Accounts.createUser({
+... username: <string>,
+... email: <string>,
+... password: <string>
+,,, })
+ '_id value'
+> .exit
+```
+
+This will install a user with a basic account. The **plan** is *'free'* with no APM *'admin'* privileges.
+
+
+
+
+
+## Testing the Kadira APM Applications
+
+
+
 ## Installing Kadira APM Services
 
 
