@@ -192,9 +192,13 @@ environment for execution.
 
 The **meteor** command is used for meteor project development and testing.
 
-- **meteor-engine** is a node.js project
-- **meteor-npm** is a node.js project
-- **meteor-ui** is a meteor project
+- **meteor-engine** is a node.js application project
+- **meteor-npm** is a node.js application project
+- **meteor-ui** is a meteor application project
+
+The **node.js** projects require a usable instance of **npm** and **node** commands
+outside of Meteor.  I like to use the **nvm** Node Version Manager to 
+readily administer the version of the environment to use.
 
 ### Installing NodeJs
 The node.js runtime environment is required.
@@ -203,16 +207,19 @@ switch between node.js and (npm) Node Package Manager releases.
 This is useful for developer code maintence, but may cause issues
 when deploying to a **kadira** account for running as a system sesrvice.
 
-- kadira-engine is a node.js application
-- kadira-rma is a node.js application
-- kadira-ui is a meteor application
+If your hosting is dedicated to a single version of npm and node.js,
+you may wish to install a global execution path for npm and node.js.
+Our development environment does not use global access for npm and node.js.
+Versions managed by (nvm) and are cached in the user login directory
+as the (~/.nvm) path.
 
-Installing Node Version Manager
+### Installing Node Version Manager
 The (nvm) Node Version Manager is available from [github.com/nvm-sh/nvm](https://github.com/nvm-sh/nvm).
 Installing NVM is done by coping the "install.sh" file from the repository and running it from an account on your local machine.
 
-~/.nvm/ is the directory that implements the **nvm** command and holds
-the executable instances for **npm** and **node**.
+~/.nvm/ is the directory that implements the **nvm** command and holds cached
+executables for **npm** and **node** commands. The **.bashrc** bash configuration
+file or its equivalent implements **nvm** as an alias command.
 
 ### Installing Meteor
 See: [meteor.com/install](https://www.meteor.com/install) for installation notes.
@@ -234,9 +241,14 @@ directory with references from your meteor project build directory.
 You can run your meteor application with the meteor command,
 or you can create an exportable bundle that can be run using a compatibe version of node.js.
 
+After Meteor is installed to your account, the launching file **/usr/local/bin/meteor** 
+should exist. A reference to directory **/usr/local/bin** should be in any
+environment path that wishes to use the Meteor **meteor-tool** runtime.
+
 ## Installing OSP Kadira APM Applications
 Here we assume you have a Linux user account.
-It should not have the **kadira** name which will be described later.
+It should not have the **kadira** name which will be described later
+when we configure services.
 
 You should copy the contents of the [shathaway/kadira-server](https://github.com/shathaway/kadira-server)
 into a working directory of your choosing.
@@ -313,7 +325,7 @@ export APP\_MONGO\_OPLOG_URL="mongodb://app:app-password@localhost:27017,localho
 icaSet=RS-Replica-01&authSource=tkadira-app"
 ```
 
-#### Update the Startup Scripts
+### Update the Startup Scripts
 
 There are three ongoing applications as subdirectories to the overall architecture.
 
@@ -354,12 +366,17 @@ db.mapReduceProfileConfig.insertMany([
 ])
 ```
 
-When doing sharding: "one" is the first shard, "two" is the second shard, and "three" is the third shard.
-Our developers are not doing sharding and therefore multiple shard servers are not tested.
+When doing sharding: "one" is the first shard, "two" is the second shard,
+and "three" is the third shard.
+Our developers are not doing sharding and therefore multiple
+shard servers are not tested.
 
-### Initialize APM Database With User
+### Initialize APP Database With User
 Our APM user authentication uses the Meteor **accounts-password** module.
-You can use the Meteor shell to install an initial account.
+The **kadira-ui** application uses the **APP\_MONGO_URL** environment for the
+MongoDb connection to the our APP (tkadira_app) database.
+APM user credentials are inserted into the **users** collection.
+You can use the Meteor shell to install an initial user accounts.
 The kadira-ui application must be running in order to launch the Meteor shell.
 
 - Connect to the application project directory: kadira-ui
@@ -389,12 +406,63 @@ meteor shell
 > .exit
 ```
 After creating a user, its login authorization should be available by using the dashboard.
+The user has only default permissions associated with the "free" plan.
+
+BEWARE: If you know the user document layout, you can use the **mongo** command to
+access the database and directly administer the documents stored in collections.
 
 ## Testing the Kadira APM Applications
 
+Here we launch the (kadira-engine), (kadira-rma), and (kadira-ui) as applications.
 
+- kadira-engine -- This application receives metrics.
+- kadira-rma -- This application performs mapReduce operations on metrics.
+- kadira-ui -- This is the user dashboard to register applications and view metrics.
 
-## Installing Kadira APM Services
+### Edit the "init-shell.sh" Environment
+These are the serviceable environments provided by the original **kadira-open/kadira-server**
+implementation. They should be edited for your environment.
+
+- APP\_MONGO_URL -- The mongodb: connection string to your APP (tkadira-app) database.
+- DATA\_MONGO_URL -- The mongodb: connection string to your DATA (tkadira-data) database.
+- APP\_MONGO\_OPLOG_URL -- The mongodb: connection string to the OPLOG replicaSet synchronization stream.
+- MAIL_URL -- The address of a **smtp** server to deliver email messages and notifications.
+- ENGINE_PORT=11011 -- The port used by the **kadira-engine** listener service.
+- UI_PORT=4000 -- The port used by the **kadira-ui** dashboard listener service.
+- UI\_URL=http://localhost:$UI_PORT
+
+We are not using the LIBRATO statics collection and reporting service.
+The email interface and configured accounts are disabled or
+removed from our code implementation.
+
+### Starting the Applications
+The startup is consistent across all three applications (kadira-engine), (kadira-apm)
+and (kadira-ui).
+
+1. Connect to the application directory.
+1. Invoke: 'cat ../init-shell.sh run.sh | sh
+
+I like to change the second line to have redirection to a **runtime.log** file
+that can be later reviewed for problems.
+
+```
+cat ../init-shell.sh run.sh | sh 2>&1 | tee runtime.log
+```
+
+Running the applications in the foreground, one application per terminal session,
+will afford an easy application termination by issuing a (CTRL-C) or SIGHUP
+to the controlling process.
+
+Application **kadira-rma** launches a dozen node
+processes that can be confusing to cleanup without knowing the controlling
+process.
+
+Knowledge of using the **ps** command to analyze Linux processes is useful.
+
+Later we will configure (systemd/systemctl) to launch these applications
+as services.
+
+## Installing OSP Kadira APM Services (systemd/systemctl)
 
 
 
