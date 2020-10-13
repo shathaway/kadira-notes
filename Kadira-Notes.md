@@ -214,7 +214,7 @@ Installing NVM is done by coping the "install.sh" file from the repository and r
 ~/.nvm/ is the directory that implements the **nvm** command and holds
 the executable instances for **npm** and **node**.
 
-## Installing Meteor
+### Installing Meteor
 See: [meteor.com/install](https://www.meteor.com/install) for installation notes.
 
 This command downloads a shell script installation bundle.
@@ -313,6 +313,24 @@ export APP\_MONGO\_OPLOG_URL="mongodb://app:app-password@localhost:27017,localho
 icaSet=RS-Replica-01&authSource=tkadira-app"
 ```
 
+#### Update the Startup Scripts
+
+There are three ongoing applications as subdirectories to the overall architecture.
+
+The top-level directory contains the "init-shell.sh" script that provides a common environment
+to the related applications.
+
+Each subordinate application (kadira-engine, kadira-rma, kadira-ui) have their own subdirectory
+below the top-level. Each subdirectory has a "run.sh" responsible for starting that application.
+To start a dependent application, you connect to the subdirectory and issue this command string.
+```
+cat ../init-shell.sh run.sh | sh
+```
+By this part of installation configuration, you should have enough information to
+edit the "init-shell.sh" so the applications can be launched and testable.
+
+Preparing the applications as Linux systemd services is described later.
+
 ### Initialize the DATA Database
 Insert records into the mapReduceProfileConfig collection to support the metrics aggregation profiles.
 
@@ -350,8 +368,13 @@ The kadira-ui application must be running in order to launch the Meteor shell.
 The application start above puts the job in the background. To cancel the application,
 you bring it to the forground using the **fg 1** command and issue **<CTRL-C>**.
 You can look for the background jobs by issuing the **jobs** command.
+This will install a user with a basic account. The **plan** is *'free'* with no APM *'admin'* privileges.
 
-The Meteor shell is invoked by a user when connected to the application project directory
+At this time, the **kadira-ui** dashboard listening on *http://localhost:4000" is
+unable to create new users.
+New users are created with the Meteor shell.
+
+The Meteor shell is invoked by a system user when connected to the application project directory
 while the application is running. The database being used (*tkadira-app*) is the
 application database.
 
@@ -361,16 +384,11 @@ meteor shell
 ... username: <string>,
 ... email: <string>,
 ... password: <string>
-,,, })
- '_id value'
+... })
+ <returns _id: value>
 > .exit
 ```
-
-This will install a user with a basic account. The **plan** is *'free'* with no APM *'admin'* privileges.
-
-
-
-
+After creating a user, its login authorization should be available by using the dashboard.
 
 ## Testing the Kadira APM Applications
 
