@@ -221,15 +221,20 @@ This command downloads a shell script installation bundle.
 ```
 curl https://install.meteor.com/ 
 ```
-Installing this bundle puts the meteor-tool in your **~/.meteor/packages** directory and installs a global launcher as executable file **/usr/local/bin/meteor**.
+Installing this bundle puts the meteor-tool in your **~/.meteor/packages**
+directory and installs a global launcher as executable file **/usr/local/bin/meteor**.
 
-Each meteor project has a hidden **.meteor** directory containing the meteor version to use with the project.  Invoking the **meteor** command from within a project chooses the proper meteor-tool that provides a compatible runtime. Meteor packages are cached in your login **~/.meteor/packages**
+Each meteor project has a hidden **.meteor** directory containing the
+meteor version to use with the project.
+Invoking the **meteor** command from within a project chooses the proper
+meteor-tool that provides a compatible runtime.
+Meteor packages are cached in your login **~/.meteor/packages**
 directory with references from your meteor project build directory.
 
 You can run your meteor application with the meteor command,
 or you can create an exportable bundle that can be run using a compatibe version of node.js.
 
-Installing OSP Kadira APM Applications
+## Installing OSP Kadira APM Applications
 Here we assume you have a Linux user account.
 It should not have the **kadira** name which will be described later.
 
@@ -280,7 +285,7 @@ Here are examples we use in the **init-shell.sh** startup script.
 
 Connecting to the APP database:
 ```
-export APP_MONGO_URL="mongodb://app:app-password@localhost:27017/tkadira-app"
+export APP\_MONGO_URL="mongodb://app:app-password@localhost:27017/tkadira-app"
 ```
 The **app:app-password** represents the MongoDb security credentials associated with
 the **tkadira-app** database.
@@ -290,7 +295,7 @@ the **tkadira-app** database.
 
 Connecting to the DATA database:
 ```
-export DATA_MONGO_URL="mongodb://app:app-password@localhost:27017/tkadira-data"
+export DATA\_MONGO_URL="mongodb://app:app-password@localhost:27017/tkadira-data"
 ```
 The **app:app-password** represents the MongoDb security credentials associated with
 the **tkadira-app** database.
@@ -298,9 +303,13 @@ the **tkadira-app** database.
 { user: "app", pwd: "app-password" }
 ```
 
-Getting live statistics requires access to the Mongo OPLOG data stream that is rendered to the local database. If your MongoDb system is secured, the user:password must have access to the local database, but may be authenticated to a user on another database on the same server.
+Getting live statistics requires access to the Mongo OPLOG data stream
+that synchronizes transactions to the replication cluster.
+The OPLOG data stream uses the **local** database.
+If your MongoDb system is secured, the user:password must have access to the local database,
+but may be authenticated to a user on another database on the same server.
 ```
-export APP_MONGO_OPLOG_URL="mongodb://app:app-password@localhost:27017,localhost:27020/local?repl
+export APP\_MONGO\_OPLOG_URL="mongodb://app:app-password@localhost:27017,localhost:27020/local?repl
 icaSet=set-SORM-RH7-PC-01&authSource=tkadira-app"
 ```
 
