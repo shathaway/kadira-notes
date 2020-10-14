@@ -540,7 +540,7 @@ be recognized or even delivered to our NGINX reverse proxy web server.
 The "kadira-rma" service runs locally with no external communications
 except to a backend MongoDb database.
 
-## MongoDb Services
+## MongoDb Services (systemd/systemctl)
 
 The MonoDb mongod services are being run as user:mongod and group:mongod.
 
@@ -586,23 +586,23 @@ ExecStartPre=/usr/bin/chmod 0755 /var/run/mongodb
 PermissionsStartOnly=true
 PIDFile=/var/run/mongodb/mongod.pid
 Type=forking
-\# file size
+# file size
 LimitFSIZE=infinity
-\# cpu time
+# cpu time
 LimitCPU=infinity
 \# virtual memory size
 LimitAS=infinity
 # open files
 LimitNOFILE=64000
-\# processes/threads
+# processes/threads
 LimitNPROC=64000
-\# locked memory
+# locked memory
 LimitMEMLOCK=infinity
-\# total threads (user+kernel)
+# total threads (user+kernel)
 TasksMax=infinity
 TasksAccounting=false
-\# Recommended limits for for mongod as specified in
-\# http://docs.mongodb.org/manual/reference/ulimit/#recommended-settings
+# Recommended limits for for mongod as specified in
+# http://docs.mongodb.org/manual/reference/ulimit/#recommended-settings
 
 [Install]
 WantedBy=multi-user.target
@@ -622,19 +622,19 @@ A schedule can be installed as a cron job rule.
 
 Here is a script that can be used to rotate log files.
 ```sh
-\#!/bin/bash
-\# File: /etc/mongodb.d/rotate.sh
-\#
-\# This file is called by /etc/cron.d/mongodb.cron
-\#
-\# Rotate the MongoDB replica set logs on localhost
-\# We currently have 2 mongod processes on this host.
-\#
+#!/bin/bash
+# File: /etc/mongodb.d/rotate.sh
+#
+# This file is called by /etc/cron.d/mongodb.cron
+#
+# Rotate the MongoDB replica set logs on localhost
+# We currently have 2 mongod processes on this host.
+#
 
 PID1=0
 PID2=0
 
-\# get the PIDs of the running mongod services
+# get the PIDs of the running mongod services
 
 if [ -f "/var/run/mongodb/mongod.pid" ] ; then
  PID1=\`cat /var/run/mongodb/mongod.pid`
@@ -643,7 +643,7 @@ if [ -f "/var/run/mongodb/mongod2.pid" ] ; then
  PID2=\`cat /var/run/mongodb/mongod2.pid`
 fi
 
-\# Signal SIGUSR1 to rotate the mongod service logs
+# Signal SIGUSR1 to rotate the mongod service logs
 
 if [ ${PID1} -gt 1 ] ; then
  kill -s USR1 $PID1
@@ -654,17 +654,423 @@ fi
 ```
 File: mongodb.cron
 ```
-\# File: mongodb.cron
-\#
-\# Template to schedule the rotation of MongoDB log files.
-\# Place this schedule into /etc/cron.d/mongodb.cron
-\# (Minute 0,59) (hour 0,23) (day-of-month 1,31) (month-in-year 1,12) (day-of-week 0,6/0=sunday)
+# File: mongodb.cron
+#
+# Template to schedule the rotation of MongoDB log files.
+# Place this schedule into /etc/cron.d/mongodb.cron
+# (Minute 0,59) (hour 0,23) (day-of-month 1,31) (month-in-year 1,12) (day-of-week 0,6/0=sunday)
 
 1 1 * * * /etc/mongodb.d/rotate.sh
 ```
 
+## OSP Kadira APM Services (systemd/systemctl)
 
+### The User (kadira)
+Services for the OSP Kadira APM applications use a special **kadira** account.
+This account has no login password enabled and must be accessed by a user
+with su/sudo permissions.  Otherwise we configure the user account as a
+normal user with a **bash** shell that can accommodate the installation
+of a NodeJs Version Manager (nvm) into which a compatible version of **node**
+will be selected.
 
+The **kadira** user is given its own **/home/kadira** directory.
+We then copy our trusted kadira-server application tree into the
+**/home/kadira/kadira-server/** path.
 
+Meteor applications (unless bundled by meteor build) will require the
+**/usr/local/bin/meteor** executable to be reachable by the service path.
 
+If we want **kadira-ui** to be built every time the meteor is launched, we
+will need the ability to install the Meteor tools and cached packages
+to the **kadira** user account.
+Otherwise, if we use a distributed Meteor Build bundle, we only need
+to use the compatible NodeJs software to run the bundle as 
+a **node** application.
+
+### The Service Configurations
+
+We use a common directory /etc/kadira/ to hold the service configurations.
+We configure these service names for use by the Linux (systemd/systemctl)
+service manager.
+- kadira-en = The endpoint engine for Meteor instrumentation
+- kadira-rma = The realtime metrics aggregator service
+- kadira-ui = The APM user dashboard and metrics visualizer
+
+The /etc/kadira/ directory:
+| FILENAME | PURPOSE |
+| :------------ | :----------------|
+| kadira-en.env | Environment for *kadira-en* |
+| kadira-en.service | Copy to /lib/systemd/system |
+| kadira-rma.env | Environment for *kadira-rma* |
+| kadira-rma.service | Copy to /lib/systemd/system |
+| kadira-ui.env | Environment for *kadira-ui* |
+| kadira-ui.service | Copy to /lib/systemd/system |
+
+The OSP Kadira APM software units still run as applications using a virtualized control terminal.
+There is no need for a separate /run/\*.pid file because the (systemd) service has
+full control of the application.
+
+The application services are run as user:kadira and group:kadira.
+
+The application console output is copied to files in the /var/log/kadira directory.
+
+The /var/log/kadira directory is to have two special script files. One is
+to ensure that logfiles exist. The other is to ensure that the current
+logfile is renamed when the specific service is started, thus implementing
+a simple log rotation scheme.
+
+File: /var/log/kadira/touch_log.sh
+```sh
+touch /var/log/kadira/kadira-en.log
+touch /var/log/kadira/kadira-rma.log
+touch /var/log/kadira/kadira-ui.log
+```
+
+File: /var/log/kadira/backup_log.sh
+```sh
+#!/bin/bash
+# Script to make backup of OSP Kadira APM log files.
+#
+# The OSP Kadira APM logs - when run as a service.
+#
+# /home/kadira/kadira-server/kadira-engine/ 
+#   1>/var/log/kadira/kadira-en.log 2>&1
+#
+# /home/kadira/kadira-server/kadira-rma/
+#   1>/var/log/kadira/kadira-rma.log 2>&1
+#
+# /home/kadira/kadira-server/kadira-ua/
+#   1>/var/log/kadira/kadira-ua.log 2>&1
+#
+# The log files will be renamed based on the $1 filename.
+#
+#
+# kadira-en.log   --> kadira-en_ccyymmdd_hhmmss.log
+# kadira-rma.log  --> kadira-rma_ccyymmdd_hhmmss.log
+# kadira-ui.log   --> kadira-ui_ccyymmdd_hhmmss.log
+
+#PWD=`pwd`
+BK=`date +%Y%m%d_%H%M%S`
+FN=$1
+cd /var/log/kadira
+if [ -f "${FN}.log" ] ; then
+  mv "${FN}.log" "${FN}_${BK}.log"
+fi
+#cd $PWD
+
+```
+
+### Configure Kadira Engine (kadira-en)
+
+The service environment file: /etc/kadira/kadira-en.env
+```sh
+# The Kadira Service
+KSERVICE=kadira-en
+MONGO_REPLICA_SET="RS-Replica-01"
+SYSLOGDIR=/var/log/kadira
+
+# The Kadira Path (the node version and optional meteor)
+PATH=/home/kadira/.nvm/versions/node/v4.8.3/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin
+
+# The Kadira MongoDB App Registry
+APP_MONGO_URL="mongodb://app:app-password@localhost:27017/tkadira-app"
+
+# The Kadira MongoDB Data Registry
+DATA_MONGO_URL="mongodb://app:app-password@localhost:27017/tkadira-data"
+
+# The Kadira MongoDB OPLOG RealTime Service - Require MongoDB Authentication
+# APP_MONGO_OPLOG_URL="mongodb://app:app-password@localhost:27017,localhost:27020/local?authSource=tkadira-app&replicaSet=${MONGO_REPLICA_SET}"
+
+# The Kadira MongoDB OPLOG RealTime Service - Without MongoDB Authentication
+APP_MONGO_OPLOG_URL="mongodb://localhost:27017,localhost:27020/local?replicaSet=${MONGO_REPLICA_SET}"
+
+# Engine settings
+ENGINE_PORT=11011
+
+# UI settings
+UI_PORT=4000
+UI_URL="http://localhost:$UI_PORT"
+
+```
+
+The Linux (systemd/systemctl) service unit<br>
+File: /lib/systemd/system/kadira-en.service
+```sh
+#
+# OSP Kadira APM / kadira-en
+#
+# This is a systemd service unit configuration file.
+#
+[Unit]
+Description=OSP Kadira APM - engine
+Documentation=https://github.exe/shathaway/kadira-notes
+
+# Prerequisite = MongoDB Service
+Requires=mongod.service
+After=mongod.service
+
+#
+# The service section
+#
+[Service]
+User=kadira
+Group=kadira
+
+# Working directory for the service
+WorkingDirectory=/home/kadira/kadira-server/kadira-engine
+
+# Environment Variables (similar to ../init-shell.sh)
+EnvironmentFile=/etc/kadira/kadira-en.env
+
+Type=simple
+KillMode=mixed
+
+# The script to start the systemd service
+ExecStart=/home/kadira/kadira-server/kadira-engine/start-service.sh
+
+# No PID file is required
+
+# Ensure that usable syslog directory is created
+ExecStartPre=/usr/bin/mkdir -p /var/log/kadira
+ExecStartPre=/usr/bin/chown kadira:kadira /var/log/kadira
+ExecStartPre=/usr/bin/chmod 0775 /var/log/kadira
+
+#
+# INSTALL Section for systemctl (Enable/Disable)
+#
+[Install]
+WantedBy=multi-user.target
+
+```
+
+The start-service.sh is a file based on run.sh but redirects output to the logfile.
+```sh
+#!/bin/bash
+#
+# systemd reads environment from /etc/kadira/${KSERVICE}.env
+#
+# Backup the /var/log/kadira log file
+
+$SYSLOGDIR/backup_log.sh $KSERVICE
+
+# Perform the service startup
+
+MONGO_URL=$APP_MONGO_URL \
+MONGO_SHARD_URL_one=$DATA_MONGO_URL \
+PORT=$ENGINE_PORT \
+LIBRATO_EMAIL=$LIBRATO_EMAIL \
+LIBRATO_TOKEN=$LIBRATO_TOKEN \
+LIBRATO_PREFIX=kadira-engine- \
+LIBRATO_INTERVAL=60000 \
+  node server.js 1>${SYSLOGDIR}/${KSERVICE}.log 2>&1
+```
+=========================================
+### Configure Kadira Realtime Aggregator (kadira-rma)
+
+The service environment file: /etc/kadira/kadira-rma.env
+```sh
+# The Kadira Service
+KSERVICE=kadira-rma
+MONGO_REPLICA_SET="RS-Replica-01"
+SYSLOGDIR=/var/log/kadira
+
+# The Kadira Path
+PATH=/home/kadira/.nvm/versions/node/v4.8.3/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin
+
+# The Kadira MongoDB App Registry
+APP_MONGO_URL="mongodb://app:app-password@localhost:27017/tkadira-app"
+
+# The Kadira MongoDB Data Registry
+DATA_MONGO_URL="mongodb://app:app-password@localhost:27017/tkadira-data"
+
+# The Kadira MongoDB OPLOG RealTime Service - Require MongoDB Authentication
+# APP_MONGO_OPLOG_URL="mongodb://app:app-password@localhost:27017,localhost:27020/local?authSource=tkadira-app&replicaSet=${MONGO_REPLICA_SET}"
+
+# The Kadira MongoDB OPLOG RealTime Service - Without MongoDB Authentication
+APP_MONGO_OPLOG_URL="mongodb://localhost:27017,localhost:27020/local?replicaSet=${MONGO_REPLICA_SET}"
+
+# Engine settings
+ENGINE_PORT=11011
+
+# UI settings
+UI_PORT=4000
+UI_URL="http://localhost:$UI_PORT"
+```
+
+The Linux (systemd/systemctl) service unit<br>
+File: /lib/systemd/system/kadira-rma.service
+```sh
+#
+# OSP Kadira APM / kadira-rma
+#
+# This is a systemd service unit configuration file.
+#
+[Unit]
+Description=OSP Kadira APM - rma aggregator
+Documentation=https://ospsubvrs01.osp.pvt/trac/ospsex
+
+# Prerequisite = MongoDB Service
+Requires=mongod.service
+After=mongod.service
+
+#
+# The service section
+#
+[Service]
+User=kadira
+Group=kadira
+
+# Working directory for the service
+WorkingDirectory=/home/kadira/kadira-server/kadira-rma
+
+# Environment Variables (similar to ../init-shell.sh)
+EnvironmentFile=/etc/kadira/kadira-rma.env
+
+Type=simple
+KillMode=mixed
+
+# The script to start the systemd service
+ExecStart=/home/kadira/kadira-server/kadira-rma/start-service.sh
+
+# No PID File Required
+
+# Ensure that usable syslog directory is created
+ExecStartPre=/usr/bin/mkdir -p /var/log/kadira
+ExecStartPre=/usr/bin/chown kadira:kadira /var/log/kadira
+ExecStartPre=/usr/bin/chmod 0775 /var/log/kadira
+
+#
+# INSTALL Section for systemctl (Enable/Disable)
+#
+[Install]
+WantedBy=multi-user.target
+
+```
+
+The start-service.sh is a file based on run.sh but redirects output to the logfile.
+```sh
+#!/bin/bash
+#
+# systemd reads environment from /etc/kadira/${KSERVICE}.env
+#
+# Backup the /var/log/kadira log file
+
+$SYSLOGDIR/backup_log.sh $KSERVICE
+
+# Perform the service startup
+
+MONGO_SHARD=one \
+MONGO_URL=$DATA_MONGO_URL \
+   npm start 1>${SYSLOGDIR}/${KSERVICE}.log 2>&1
+#  npm start
+```
+
+=========================================
+### Configure Kadira User Interface (kadira-ui)
+
+The service environment file: /etc/kadira/kadira-ui.env
+```sh
+# The Kadira Service
+KSERVICE=kadira-ui
+MONGO_REPLICA_SET="RS-Replica-01"
+SYSLOGDIR=/var/log/kadira
+
+# HOME directory required to resolve 'meteor' command from /usr/local/bin
+HOME=/home/kadira
+
+# The Kadira Path
+PATH=/home/kadira/.nvm/versions/node/v4.8.3/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin
+
+# The Kadira MongoDB App Registry
+APP_MONGO_URL="mongodb://app:app-password@localhost:27017/tkadira-app"
+
+# The Kadira MongoDB Data Registry
+DATA_MONGO_URL="mongodb://app:app-password@localhost:27017/tkadira-data"
+
+# The Kadira MongoDB OPLOG RealTime Service - Require MongoDB Authentication
+# APP_MONGO_OPLOG_URL="mongodb://app:app-password@localhost:27017,localhost:27020/local?authSource=tkadira-app&replicaSet=${MONGO_REPLICA_SET}"
+
+# WARNING - systemd environmentFile= does not expand environment variable $MONGO_REPLICA_SET
+# The Kadira MongoDB OPLOG RealTime Service - Without MongoDB Authentication
+APP_MONGO_OPLOG_URL="mongodb://localhost:27017,localhost:27020/local?replicaSet=set-SORM-RH7-PC-01"
+
+# Engine settings
+ENGINE_PORT=11011
+
+# UI settings
+UI_PORT=4000
+UI_URL="http://localhost:$UI_PORT"
+
+```
+
+The Linux (systemd/systemctl) service unit<br>
+File: /lib/systemd/system/kadira-ui.service
+```sh
+#
+# OSP Kadira APM / kadira-ui
+#
+# This is a systemd service unit configuration file.
+#
+[Unit]
+Description=OSP Kadira APM - ui dashboard
+Documentation=https://ospsubvrs01.osp.pvt/trac/ospsex
+
+# Prerequisite = MongoDB Service
+Requires=mongod.service
+After=mongod.service
+
+#
+# The service section
+#
+[Service]
+User=kadira
+Group=kadira
+
+# Working directory for the service
+WorkingDirectory=/home/kadira/kadira-server/kadira-ui
+
+# Environment Variables (similar to ../init-shell.sh)
+EnvironmentFile=/etc/kadira/kadira-ui.env
+
+Type=simple
+KillMode=mixed
+
+# The script to start the systemd service
+ExecStart=/home/kadira/kadira-server/kadira-ui/start-service.sh
+
+# No PID File Required
+
+# Ensure that usable syslog directory is created
+ExecStartPre=/usr/bin/mkdir -p /var/log/kadira
+ExecStartPre=/usr/bin/chown kadira:kadira /var/log/kadira
+ExecStartPre=/usr/bin/chmod 0775 /var/log/kadira
+
+#
+# INSTALL Section for systemctl (Enable/Disable)
+#
+[Install]
+WantedBy=multi-user.target
+
+```
+
+The start-service.sh is a file based on run.sh but redirects output to the logfile.
+```sh
+#!/bin/bash
+#
+# systemd reads environment from /etc/kadira/${KSERVICE}.env
+#
+# Backup the /var/log/kadira log file
+
+$SYSLOGDIR/backup_log.sh $KSERVICE
+
+# Perform the service startup
+
+MONGO_URL=$APP_MONGO_URL \
+MONGO_OPLOG_URL=$APP_MONGO_OPLOG_URL \
+MONGO_SHARD_URL_one=$DATA_MONGO_URL \
+MAIL_URL=$MAIL_URL \
+ROOT_URL=$UI_ROOT_URL \
+meteor --port $UI_PORT --settings ./settings.json $@ 1>${SYSLOGDIR}/${KSERVICE}.log 2>&1
+
+```
 
