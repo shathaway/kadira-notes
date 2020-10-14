@@ -1073,4 +1073,235 @@ ROOT_URL=$UI_ROOT_URL \
 meteor --port $UI_PORT --settings ./settings.json $@ 1>${SYSLOGDIR}/${KSERVICE}.log 2>&1
 
 ```
+## NGINX Reverse Proxy Configuration
+We use NGINX without Phusion Passenger integration.
+
+The process of installing [NGINX](https://docs.nginx.com/nginx/admin-guide/installing-nginx)
+will also install the necessary Linux (systemd/systemctl) service controls.
+The software still needs to be configured to use services other than the
+default distribution.
+
+### PKI/TLS Certificates
+
+The Apache WS and our installation of NGINX will use these locations.
+```
+ssl_certificate       /etc/pki/tls/certs/localhost.crt;
+ssl_certificate_key   /etc/pki/tls/private/localhost.key;
+```
+The *certs* directory contains the public certificates.<br>
+The *private* directory contains the private keys.
+
+Here is a script that can be edited to create self-signed certificates.
+```sh
+#!/bin/bash
+#
+# Create self signed certificate for Apache WS - and NGINX
+# -days 1500 (approx 4 years)
+#
+
+umask 077
+
+openssl req -x509 \
+-sha256 \
+-newkey rsa:4096 \
+-keyout localhost.key \
+-out localhost.crt \
+-days 1500 \
+-subj "${YOUR-DSN-STRING}" \
+-nodes \
+-sha256
+
+# You should now have self-signed key and cert files
+# localhost.key = the private key
+# localhost.crt = the public certificate
+# Copy them to your cryptographic locations.
+```
+
+The NGINX configuration file is /etc/nginx/nginx.conf that will be
+configured to service reverse proxy for local NodeJs applications.
+
+| Application | Remote URL| Local URL |
+| :--------- | :---------- | :------------ |
+| kadira-en  | http:apm-ep.example.com   | http://localhost:11011 |
+| kadira-ui  | https:apm-ui.example.com  | http://localhost:4000  |
+| TestApp    | https:testapp.example.com | http://localhost:3000  |
+
+Here is a sample NGINX configuration:
+```
+# NGINX Configuration File
+# Configure MAIN scope
+
+# Run as user "nginx"
+# Support one top-level process as "worker_processes"
+# Support number of connections as "events.worker_connections"
+# Identify what is reported for errors.
+# Identify the file that contains the runtime main process pid.
+# Configure error logging to /var/log/nginx/error.log
+
+user  nginx;
+worker_processes  1;
+
+error_log  /var/log/nginx/error.log;
+#error_log  /var/log/nginx/error.log  warn;
+#error_log  /var/log/nginx/error.log  notice;
+#error_log  /var/log/nginx/error.log  info;
+#error_log  /var/log/nginx/error.log  debug;
+
+pid        /run/nginx.pid;
+
+events {
+    worker_connections  1024;
+}
+
+#
+# Configure the http section for (http: and https:) protocols
+#
+# Include the file of mime.types and declare a default type.
+# Declares the access_log format and location.
+# Declare the default pki certificates for ssl/tls server security.
+# Declare any upstream groups for proxy_pass operations.
+#
+# Inside a service {} and location {}, in support of a
+# NodeJS and Meteor Application by proxy_pass, requires the handling
+# of hop-by-hop http headers (Update and Connection). When setting
+# these values to the original content and forwarding to the
+# proxied application will allow http protocol to be upgraded
+# automatically to websocket.
+#
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    #keepalive_timeout  0;
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    index   index.html index.htm;
+
+    # You can put your virtual http: server configurations as *.conf files
+    # in the /etc/nginx/conf.d/ directory.
+
+    include /etc/nginx/conf.d/*.conf;
+
+    # Default root for NJINX installed static html.
+    # This can be redefined within each http server.
+
+    root    /usr/share/nginx/html; 
+
+    server {
+        listen       80 default_server;
+        server_name  localhost www.example.com example.com;
+        root         /usr/share/nginx/html;
+
+        location / {
+        }
+
+        # redirect server error pages to the static page /40x.html
+        #
+        error_page  404              /404.html;
+        location = /40x.html {
+        }
+
+        # redirect server error pages to the static page /50x.html
+        #
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+        }
+    }
+
+    #
+    # NGINX uses the "upstream" declaration for load balancing and
+    # similar proxy groups for redirection to NodeJS servers.
+    #
+
+    upstream apmEngine {
+        server http://localhost:11011;
+    }
+
+    upstream apmUi {
+        server http://localhost:4000;
+    }
+
+    upstream nodeApp {
+        server http://localhost:3000;
+    }
+
+    # PKI/TLS CERTIFICATES
+
+    ssl_certificate       /etc/pki/tls/certs/localhost.crt;
+    ssl_certificate_key   /etc/pki/tls/private/localhost.key;
+
+    # Global ssl certificate cache performance and cipher selection.
+
+    ssl_session_cache    shared:SSL:1m;
+    ssl_session_timeout  5m;
+
+    ssl_ciphers  HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers  on;
+
+    # The Upgrade and Connection headers are required for http upgrade to
+    # websocket protocol.
+
+    # The Proxied Kadira Metrics Capture Engine (kadira) to port 11011
+    server {
+        listen       443 ssl;
+        server_name  apm-ep.example.com;
+        location / {
+            proxy_pass apmEngine; # http://localhost:11011
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $http_connection;
+        }
+    }
+
+    # Note: the monitored Meteor application may have problems with https:
+    # so the standard http: external interface is also provided.
+
+    # The Proxied Kadira Metrics Capture Engine (kadira) to port 11011
+    server {
+        listen       80;
+        server_name  apm-ep.example.com;
+        location / {
+            proxy_pass apmEngine; # http://localhost:11011
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $http_connection;
+        }
+    }
+
+    # The Proxied APM Dashboard Application (ui, apm) to port 4000
+    server {
+        listen       443 ssl;
+        server_name  apm-ui.example.com;
+        location / {
+            proxy_pass  apmUi; # http://localhost:4000
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $http_connection;
+        }
+    }
+
+    # The Proxied Meteor "SimpleTodos" Application to port 3000
+    server {
+        listen       443 ssl;
+        server_name  testapp.examle.com;
+ 
+        # Proxy to the meteor SimpleTodos application
+        location / {
+            proxy_pass  nodeApp; # http://localhost:3000
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $http_connection;
+        }
+    }
+}
+```
+
 
