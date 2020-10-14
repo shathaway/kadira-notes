@@ -1122,9 +1122,9 @@ configured to service reverse proxy for local NodeJs applications.
 
 | Application | Remote URL| Local URL |
 | :--------- | :---------- | :------------ |
-| kadira-en  | http:apm-ep.example.com   | http://localhost:11011 |
-| kadira-ui  | https:apm-ui.example.com  | http://localhost:4000  |
-| TestApp    | https:testapp.example.com | http://localhost:3000  |
+| kadira-en  | http://apm-ep.example.com   | http://localhost:11011 |
+| kadira-ui  | https://apm-ui.example.com  | http://localhost:4000  |
+| TestApp    | https://testapp.example.com | http://localhost:3000  |
 
 Here is a sample NGINX configuration:
 ```
