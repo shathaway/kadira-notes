@@ -53,6 +53,7 @@ We currently install a self-managed MongoDb database on Linux with local hosting
 Your installation may be different, but we use CentOS or RedHat hosting configured with SELinux security extensions. Our initial implementation uses localhost 127.0.0.1 binding with no external network access. This requires that all applications and database nodes be on the same host.
 
 **mongod** - the primary database node implementation (default) : 27017
+
 | /etc/mongod.conf | System startup options for primary node. |
 | :--------------------------------- | :--------------------------- |
 | /var/lib/mongod/* | Database for primary node. |
@@ -61,6 +62,7 @@ Your installation may be different, but we use CentOS or RedHat hosting configur
 | /run/mongodb/mongod.pid | pid file for primary node |
 
 **mondod2** - the secondary database node implementation (replica)  : 27020
+
 | /etc/mongod2.conf | System startup options for secondary node.|
 | :--------------------------------- | :--------------------------- |
 | /var/lib/mongod2/* | Database for secondary node. |
@@ -69,6 +71,7 @@ Your installation may be different, but we use CentOS or RedHat hosting configur
 | /run/mongodb/mondod2.pid | pid file for secondary node |
 
 **system files** - system management files and directories
+
 | /etc/mongodb.d/* | Files for log file rotation |
 | :--------------------------------- | :--------------------------- |
 | /etc/mongodb.d/rotate.sh | Script to rotate log files |
@@ -697,6 +700,7 @@ service manager.
 - kadira-ui = The APM user dashboard and metrics visualizer
 
 The /etc/kadira/ directory:
+
 | FILENAME | PURPOSE |
 | :------------ | :----------------|
 | kadira-en.env | Environment for *kadira-en* |
@@ -1301,5 +1305,4 @@ http {
     }
 }
 ```
-
 
