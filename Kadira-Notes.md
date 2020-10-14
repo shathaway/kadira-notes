@@ -864,7 +864,6 @@ LIBRATO_PREFIX=kadira-engine- \
 LIBRATO_INTERVAL=60000 \
   node server.js 1>${SYSLOGDIR}/${KSERVICE}.log 2>&1
 ```
-=========================================
 ### Configure Kadira Realtime Aggregator (kadira-rma)
 
 The service environment file: /etc/kadira/kadira-rma.env
@@ -965,7 +964,6 @@ MONGO_URL=$DATA_MONGO_URL \
 #  npm start
 ```
 
-=========================================
 ### Configure Kadira User Interface (kadira-ui)
 
 The service environment file: /etc/kadira/kadira-ui.env
