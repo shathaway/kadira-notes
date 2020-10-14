@@ -992,7 +992,7 @@ DATA_MONGO_URL="mongodb://app:app-password@localhost:27017/tkadira-data"
 
 # WARNING - systemd environmentFile= does not expand environment variable $MONGO_REPLICA_SET
 # The Kadira MongoDB OPLOG RealTime Service - Without MongoDB Authentication
-APP_MONGO_OPLOG_URL="mongodb://localhost:27017,localhost:27020/local?replicaSet=set-SORM-RH7-PC-01"
+APP_MONGO_OPLOG_URL="mongodb://localhost:27017,localhost:27020/local?replicaSet=RS-Replica-01"
 
 # Engine settings
 ENGINE_PORT=11011
