@@ -1,12 +1,17 @@
 # OSP Kadira APM
 This is the Oregon State government implementation of the **kadira-open/kadira-server**.
-OSP Kadira APM project creates a general purpose in-house Meteor Application Performance Monitoring system.
+OSP Kadira APM project creates a general purpose in-house
+Meteor Application Performance Monitoring system.
 The Meteor software development framework and the OSP Kadira APM are currently used 
 for in-house software development products.
 The OSP Kadira APM can be used to monitor any Meteor application
 that is created or installed for in-house use.
 
-The hosting of this service is on a self-maintained server or network of servers.
+Initial work is attributed to Arunoda Susiripala contributions to Kadira and Meteor.
+He still claims to hold the Kadira name. Lots of related Kadira support has been
+committed to github [kadirahq](https://github.com/kadirahq).
+
+The hosting of OSP Kadira APM is targeted to a self-maintained server or network of servers.
 The servers are either acquired as physical servers or PAAS leased platforms as a service.
 Development of this implementation uses VMware virtual machines of Linux systems.
 Development is compatible with a replicated set of mongod nodes on a single machine.
@@ -35,7 +40,7 @@ Strategic tasks for installing a new system:
 ## Installing MongoDb
 A minimal installation of MongoDb is to provide two mongod services joined by a replica set.
 If you only implement two mongod services, the primary service should have an
-increased priority to resolve database service node elections in absence of an arbiter.
+increased priority to resolve database replication node elections in absence of an arbiter.
 
 If your implementation requires MongoDb coordination between hosts, then network security
 should be implemented in your MongoDb configuration.
@@ -198,7 +203,7 @@ The **meteor** command is used for meteor project development and testing.
 
 The **node.js** projects require a usable instance of **npm** and **node** commands
 outside of Meteor.  I like to use the **nvm** Node Version Manager to 
-readily administer the version of the environment to use.
+easily administer the version of the **node** environment to use.
 
 ### Installing NodeJs
 The node.js runtime environment is required.
@@ -225,7 +230,7 @@ file or its equivalent implements **nvm** as an alias command.
 See: [meteor.com/install](https://www.meteor.com/install) for installation notes.
 
 This command downloads a shell script installation bundle.
-```
+```sh
 curl https://install.meteor.com/ 
 ```
 Installing this bundle puts the meteor-tool in your **~/.meteor/packages**
@@ -234,7 +239,7 @@ directory and installs a global launcher as executable file **/usr/local/bin/met
 Each meteor project has a hidden **.meteor** directory containing the
 meteor version to use with the project.
 Invoking the **meteor** command from within a project chooses the proper
-meteor-tool that provides a compatible runtime.
+meteor-tool that provides the version specific runtime.
 Meteor packages are cached in your login **~/.meteor/packages**
 directory with references from your meteor project build directory.
 
@@ -254,6 +259,18 @@ You should copy the contents of the [shathaway/kadira-server](https://github.com
 into a working directory of your choosing.
 It is best to have a directory separate from that containing
 the (*.git*) hidden directory that is associated with a forked or cloned git repository.
+
+The find and cpio commands are useful for copying an entire directory structure to another.
+Let SRC be the location of your working git repository.
+Let DST be the location of your target path.
+After copying, we are removing the .git files from the destination
+because we don't need redundant git repositories.
+```sh
+cd $SRC
+find | cpio -pdmuv $DST
+cd $DST
+rm -rf .git
+```
 
 The directory containing a copy of **kadira-server** content has a **init-shell.sh** file
 that is used to set some common environment variables used by the application products
@@ -320,7 +337,7 @@ that synchronizes transactions to the replication cluster.
 The OPLOG data stream uses the **local** database.
 If your MongoDb system is secured, the user:password must have access to the local database,
 but may be authenticated to a user on another database on the same server.
-```
+```sh
 export APP\_MONGO\_OPLOG_URL="mongodb://app:app-password@localhost:27017,localhost:27020/local?repl
 icaSet=RS-Replica-01&authSource=tkadira-app"
 ```
@@ -335,7 +352,7 @@ to the related applications.
 Each subordinate application (kadira-engine, kadira-rma, kadira-ui) have their own subdirectory
 below the top-level. Each subdirectory has a "run.sh" responsible for starting that application.
 To start a dependent application, you connect to the subdirectory and issue this command string.
-```
+```sh
 cat ../init-shell.sh run.sh | sh
 ```
 By this part of installation configuration, you should have enough information to
@@ -376,7 +393,7 @@ Our APM user authentication uses the Meteor **accounts-password** module.
 The **kadira-ui** application uses the **APP\_MONGO_URL** environment for the
 MongoDb connection to the our APP (tkadira_app) database.
 APM user credentials are inserted into the **users** collection.
-You can use the Meteor shell to install an initial user accounts.
+You can use the Meteor shell to install the initial user accounts.
 The kadira-ui application must be running in order to launch the Meteor shell.
 
 - Connect to the application project directory: kadira-ui
@@ -446,12 +463,12 @@ The startup is consistent across all three applications (kadira-engine), (kadira
 and (kadira-ui).
 
 1. Connect to the application directory.
-1. Invoke: 'cat ../init-shell.sh run.sh | sh
+2. Invoke: `cat ../init-shell.sh run.sh | sh`
 
 I like to change the second line to have redirection to a **runtime.log** file
 that can be later reviewed for problems.
 
-```
+```sh
 cat ../init-shell.sh run.sh | sh 2>&1 | tee runtime.log
 ```
 
@@ -514,7 +531,7 @@ common IP connection address.
 There is a reason why "http:" is assiciated with *engine.example.com*.
 
 The *mdg:meteor-apm-agent* and *meteorhacks:kadira* instrumentation for
-Meteor applications has problems sending metrics to a secure "https:"
+Meteor applications have problems sending metrics to a secure "https:"
 endpoint. An issue has been submitted to the Meteor Development Group
 about this. Even though a secure "https:" connection can be
 established from a Meteor client, the expected encrypted payload cannot
@@ -522,5 +539,132 @@ be recognized or even delivered to our NGINX reverse proxy web server.
 
 The "kadira-rma" service runs locally with no external communications
 except to a backend MongoDb database.
+
+## MongoDb Services
+
+The MonoDb mongod services are being run as user:mongod and group:mongod.
+
+The log files are saved to the /var/log/mongodb/ directory.
+
+The Linux pid files are: /var/run/mongod.pid and /var/run/mongod2.pid
+
+The Linux (systemd/systemctl) service unit files are:<br>
+/lib/systemd/system/mongod.service<br>
+/lib/systemd/system/mongod2.service
+
+The MongoDb **mongod** configuration files are in the /etc directory.
+These files are used by the mongod instance being launched by the service manager.
+See [MongoDb configuration options](https://docs.mongodb.org/manual/reference/configuration-options/)
+for details.
+
+File: /etc/mongod.conf<br>
+This is the MongoDb configuration for the first **mongod** service.
+
+File: /etc/mongod2.conf<br>
+This is the MongoDb configuration for the second **mongod** service.
+
+These files cause the **mongod** to run detached as a daemon and
+provide a file that contains the Linux PID of the **mongod** process.
+The Linux (systemd/systemctl) service manager uses these pid files
+for controlling MongoDb services.
+
+File: /lib/systemd/system/mongod.service
+```
+[Unit]
+Description=MongoDB Database Server
+Documentation=https://docs.mongodb.org/manual
+After=network.target
+
+[Service]
+User=mongod
+Group=mongod
+Environment="OPTIONS=-f /etc/mongod.conf"
+ExecStart=/usr/bin/mongod $OPTIONS
+ExecStartPre=/usr/bin/mkdir -p /var/run/mongodb
+ExecStartPre=/usr/bin/chown mongod:mongod /var/run/mongodb
+ExecStartPre=/usr/bin/chmod 0755 /var/run/mongodb
+PermissionsStartOnly=true
+PIDFile=/var/run/mongodb/mongod.pid
+Type=forking
+\# file size
+LimitFSIZE=infinity
+\# cpu time
+LimitCPU=infinity
+\# virtual memory size
+LimitAS=infinity
+# open files
+LimitNOFILE=64000
+\# processes/threads
+LimitNPROC=64000
+\# locked memory
+LimitMEMLOCK=infinity
+\# total threads (user+kernel)
+TasksMax=infinity
+TasksAccounting=false
+\# Recommended limits for for mongod as specified in
+\# http://docs.mongodb.org/manual/reference/ulimit/#recommended-settings
+
+[Install]
+WantedBy=multi-user.target
+```
+
+File: mongod2.service differs only by these lines:
+```
+Environment="OPTIONS=-f /etc/mongod2.conf"
+PIDFile=/var/run/mongodb/mongod2.pid
+```
+
+### Log File Rotation for Mongod Services
+MongoDb can rotate the log files if the service process is
+sent the SIGUSR1 signal.
+
+A schedule can be installed as a cron job rule.
+
+Here is a script that can be used to rotate log files.
+```sh
+\#!/bin/bash
+\# File: /etc/mongodb.d/rotate.sh
+\#
+\# This file is called by /etc/cron.d/mongodb.cron
+\#
+\# Rotate the MongoDB replica set logs on localhost
+\# We currently have 2 mongod processes on this host.
+\#
+
+PID1=0
+PID2=0
+
+\# get the PIDs of the running mongod services
+
+if [ -f "/var/run/mongodb/mongod.pid" ] ; then
+ PID1=\`cat /var/run/mongodb/mongod.pid`
+fi
+if [ -f "/var/run/mongodb/mongod2.pid" ] ; then
+ PID2=\`cat /var/run/mongodb/mongod2.pid`
+fi
+
+\# Signal SIGUSR1 to rotate the mongod service logs
+
+if [ ${PID1} -gt 1 ] ; then
+ kill -s USR1 $PID1
+fi
+if [ ${PID2} -gt 1 ] ; then
+ kill -s USR1 $PID2
+fi
+```
+File: mongodb.cron
+```
+\# File: mongodb.cron
+\#
+\# Template to schedule the rotation of MongoDB log files.
+\# Place this schedule into /etc/cron.d/mongodb.cron
+\# (Minute 0,59) (hour 0,23) (day-of-month 1,31) (month-in-year 1,12) (day-of-week 0,6/0=sunday)
+
+1 1 * * * /etc/mongodb.d/rotate.sh
+```
+
+
+
+
 
 
